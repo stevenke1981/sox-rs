@@ -1,0 +1,7 @@
+{
+  "mode": "convert",
+  "inputs": ["input.wav"],
+  "output": "out.wav",
+  "effects": ["trim", "0", "10", "gain", "-3", "norm", "rate", "48000"],
+  "stat_json": true
+}

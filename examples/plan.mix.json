@@ -1,0 +1,8 @@
+{
+  "mode": "mix",
+  "inputs": ["voice.wav", "music.wav"],
+  "output": "mix.wav",
+  "effects": ["fade", "0.1", "0.5"],
+  "normalize": true,
+  "stat_json": true
+}
