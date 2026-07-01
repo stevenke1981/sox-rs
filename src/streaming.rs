@@ -1,4 +1,5 @@
 use crate::cli::StreamArgs;
+use crate::util::seconds_to_frames;
 use anyhow::{Context, Result, bail};
 use hound::{SampleFormat, WavReader, WavSpec, WavWriter};
 
@@ -42,8 +43,10 @@ pub fn stream_wav(args: &StreamArgs) -> Result<()> {
         .gain_db
         .map(|db| 10.0_f32.powf(db / 20.0))
         .unwrap_or(1.0);
-    let fade_in_frames = seconds_to_frames(args.fade_in.unwrap_or(0.0), input_spec.sample_rate);
-    let fade_out_frames = seconds_to_frames(args.fade_out.unwrap_or(0.0), input_spec.sample_rate);
+    let fade_in_frames =
+        seconds_to_frames(args.fade_in.unwrap_or(0.0), input_spec.sample_rate) as u32;
+    let fade_out_frames =
+        seconds_to_frames(args.fade_out.unwrap_or(0.0), input_spec.sample_rate) as u32;
 
     match input_spec.sample_format {
         SampleFormat::Float => stream_samples::<f32, _>(
@@ -166,8 +169,4 @@ fn fade_factor(frame: u32, total_frames: u32, fade_in_frames: u32, fade_out_fram
         1.0
     };
     fade_in.min(fade_out)
-}
-
-fn seconds_to_frames(seconds: f32, sample_rate: u32) -> u32 {
-    (seconds as f64 * sample_rate as f64).round().max(0.0) as u32
 }

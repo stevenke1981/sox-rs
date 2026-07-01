@@ -1,4 +1,5 @@
 use crate::audio::AudioBuffer;
+use crate::util::seconds_to_frames;
 use anyhow::{Result, bail};
 
 #[derive(Debug, Clone)]
@@ -53,6 +54,20 @@ pub struct EffectChain {
 impl EffectChain {
     pub fn new(effects: Vec<Effect>) -> Self {
         Self { effects }
+    }
+
+    /// Append an effect and return self (builder-style).
+    #[allow(dead_code)]
+    pub fn with(mut self, effect: Effect) -> Self {
+        self.effects.push(effect);
+        self
+    }
+
+    /// Append effects from an iterator and return self (builder-style).
+    #[allow(dead_code)]
+    pub fn extend(mut self, effects: impl IntoIterator<Item = Effect>) -> Self {
+        self.effects.extend(effects);
+        self
     }
 
     pub fn apply(&self, audio: &mut AudioBuffer) -> Result<()> {
@@ -372,10 +387,6 @@ fn scale_frame(audio: &mut AudioBuffer, frame: usize, channels: usize, factor: f
     for sample in &mut audio.samples[start..start + channels] {
         *sample *= factor;
     }
-}
-
-fn seconds_to_frames(seconds: f32, sample_rate: u32) -> usize {
-    (seconds as f64 * sample_rate as f64).round().max(0.0) as usize
 }
 
 fn contiguous_silence(

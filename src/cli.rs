@@ -1,4 +1,5 @@
-use crate::{effects::EffectChain, parse_effects};
+use crate::effects::EffectChain;
+use crate::parse::parse_effects;
 use anyhow::{Result, bail};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use serde::Deserialize;

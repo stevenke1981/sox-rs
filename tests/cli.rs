@@ -122,41 +122,27 @@ fn streams_wav_without_full_buffer_pipeline() {
 }
 
 #[test]
-fn decodes_flac_when_ffmpeg_is_available() {
-    if Command::new("ffmpeg").arg("-version").output().is_err() {
-        return;
-    }
-
-    let temp = std::env::temp_dir().join(format!("rust-sox-flac-test-{}", std::process::id()));
+fn converts_wav_roundtrip_without_external_deps() {
+    // Hermetic test: generate WAV → convert with effects → verify output
+    let temp = std::env::temp_dir().join(format!("rust-sox-convert-test-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&temp);
     std::fs::create_dir_all(&temp).unwrap();
-    let wav = temp.join("input.wav");
-    let flac = temp.join("input.flac");
-    let output = temp.join("from-flac.wav");
-    write_test_wav(&wav, 4410, 1, 0.5);
-
-    let ffmpeg_status = Command::new("ffmpeg")
-        .args(["-y", "-loglevel", "error", "-i"])
-        .arg(&wav)
-        .arg(&flac)
-        .status()
-        .unwrap();
-    if !ffmpeg_status.success() {
-        return;
-    }
+    let input = temp.join("input.wav");
+    let output = temp.join("output.wav");
+    write_test_wav(&input, 4410, 1, 0.5);
 
     let status = Command::new(env!("CARGO_BIN_EXE_rust-sox"))
-        .args(["convert", "--normalize"])
-        .arg(&flac)
+        .arg("convert")
+        .arg(&input)
         .arg(&output)
+        .arg("--normalize")
         .status()
         .unwrap();
 
     assert!(status.success());
-    assert_eq!(
-        hound::WavReader::open(output).unwrap().spec().sample_rate,
-        44_100
-    );
+    let reader = hound::WavReader::open(output).unwrap();
+    assert_eq!(reader.spec().sample_rate, 44_100);
+    assert_eq!(reader.spec().channels, 1);
 }
 
 #[test]
