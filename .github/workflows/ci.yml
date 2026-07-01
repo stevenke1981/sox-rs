@@ -51,6 +51,10 @@ jobs:
             target: x86_64-apple-darwin
     runs-on: ${{ matrix.os }}
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - uses: actions/checkout@v4
 
@@ -60,7 +64,6 @@ jobs:
         run: cargo build --release --locked
 
       - name: Create package directory
-        shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           ARCHIVE_NAME="sox-${VERSION}-${{ matrix.target }}"
@@ -79,12 +82,10 @@ jobs:
 
       - name: Create archive (Unix)
         if: runner.os != 'Windows'
-        shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           ARCHIVE_NAME="sox-${VERSION}-${{ matrix.target }}"
-          cd dist
-          tar -czf "${ARCHIVE_NAME}.tar.gz" "${ARCHIVE_NAME}"
+          tar -czf "dist/${ARCHIVE_NAME}.tar.gz" -C dist "${ARCHIVE_NAME}"
 
       - name: Create archive (Windows)
         if: runner.os == 'Windows'
@@ -92,13 +93,12 @@ jobs:
         run: |
           $version = $env:GITHUB_REF_NAME -replace '^v', ''
           $archiveName = "sox-${version}-${{ matrix.target }}"
-          $distDir = Join-Path ${{ github.workspace }} "dist"
+          $distDir = "dist"
           Compress-Archive -Path "$distDir/$archiveName/*" -DestinationPath "$distDir/${archiveName}.zip" -Force
 
       - name: Generate SHA256 checksums
-        shell: bash
         run: |
-          cd ${{ github.workspace }}/dist
+          cd dist
           for f in sox-*.*; do
             [ -f "$f" ] && sha256sum "$f" >> SHA256SUMS.txt
           done
@@ -107,7 +107,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: package-${{ matrix.target }}
-          path: ${{ github.workspace }}/dist/
+          path: dist/
           if-no-files-found: error
 
   release:
@@ -126,11 +126,9 @@ jobs:
           path: dist/
 
       - name: List packages
-        shell: bash
         run: ls -lh dist/
 
       - name: Generate release notes
-        shell: bash
         run: |
           {
             echo "## sox ${{ github.ref_name }}"
@@ -150,14 +148,13 @@ jobs:
           if [ -n "$PREV" ]; then
             git log --pretty=format:"- %s (%h)" "${PREV}..HEAD" >> /tmp/release-notes.md 2>/dev/null || true
           else
-            git log --pretty=format:"- %s (%h)" "HEAD" >> /tmp/release-notes.md 2>/dev/null || true
+            git log --pretty=format:"- %s (%h)" >> /tmp/release-notes.md 2>/dev/null || true
           fi
           cat /tmp/release-notes.md
 
       - name: Create Release
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
         run: |
           cd dist
           ASSETS=()
