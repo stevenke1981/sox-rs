@@ -45,13 +45,10 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            archive_ext: tar.gz
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            archive_ext: zip
           - os: macOS-latest
             target: x86_64-apple-darwin
-            archive_ext: tar.gz
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -69,7 +66,7 @@ jobs:
           ARCHIVE_NAME="sox-${VERSION}-${{ matrix.target }}"
           mkdir -p "dist/${ARCHIVE_NAME}/examples"
 
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          if [ "${{ runner.os }}" = "Windows" ]; then
             cp "target/release/sox.exe" "dist/${ARCHIVE_NAME}/"
           else
             cp "target/release/sox" "dist/${ARCHIVE_NAME}/"
@@ -80,16 +77,8 @@ jobs:
           [ -f LICENSE-LGPL ] && cp LICENSE-LGPL "dist/${ARCHIVE_NAME}/"
           cp examples/* "dist/${ARCHIVE_NAME}/examples/" 2>/dev/null || true
 
-      - name: Generate SHA256 checksums
-        shell: bash
-        run: |
-          cd dist
-          find . -name "sox-*" -type f | while read f; do
-            sha256sum "$f" >> SHA256SUMS.txt
-          done
-
       - name: Create archive (Unix)
-        if: matrix.os != 'windows-latest'
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -98,18 +87,27 @@ jobs:
           tar -czf "${ARCHIVE_NAME}.tar.gz" "${ARCHIVE_NAME}"
 
       - name: Create archive (Windows)
-        if: matrix.os == 'windows-latest'
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $version = $env:GITHUB_REF_NAME -replace '^v', ''
           $archiveName = "sox-${version}-${{ matrix.target }}"
-          Compress-Archive -Path "dist/$archiveName/*" -DestinationPath "dist/${archiveName}.zip" -Force
+          $distDir = Join-Path ${{ github.workspace }} "dist"
+          Compress-Archive -Path "$distDir/$archiveName/*" -DestinationPath "$distDir/${archiveName}.zip" -Force
+
+      - name: Generate SHA256 checksums
+        shell: bash
+        run: |
+          cd ${{ github.workspace }}/dist
+          for f in sox-*.*; do
+            [ -f "$f" ] && sha256sum "$f" >> SHA256SUMS.txt
+          done
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
           name: package-${{ matrix.target }}
-          path: dist/*.tar.gz dist/*.zip dist/SHA256SUMS.txt
+          path: ${{ github.workspace }}/dist/
           if-no-files-found: error
 
   release:
@@ -132,24 +130,28 @@ jobs:
         run: ls -lh dist/
 
       - name: Generate release notes
-        id: notes
         shell: bash
         run: |
           {
-            echo "### sox ${{ github.ref_name }}"
+            echo "## sox ${{ github.ref_name }}"
             echo ""
-            echo "**Platform packages:**"
-            echo ""
-            ls dist/ | while read f; do
-              echo "- \`$f\`"
-            done
-            echo ""
-            echo "---"
-            echo ""
-            echo "### Changes"
+            echo "### Downloads"
             echo ""
           } > /tmp/release-notes.md
-          git log --pretty=format:"- %s (%h)" "$(git tag --sort=-version:refname | head -1)^"..HEAD >> /tmp/release-notes.md 2>/dev/null || true
+          ls dist/ | while IFS= read -r f; do
+            echo "- \`$f\`" >> /tmp/release-notes.md
+          done
+          echo "" >> /tmp/release-notes.md
+          echo "---" >> /tmp/release-notes.md
+          echo "" >> /tmp/release-notes.md
+          echo "### Changes since previous tag" >> /tmp/release-notes.md
+          echo "" >> /tmp/release-notes.md
+          PREV=$(git tag --sort=-version:refname | head -2 | tail -1 2>/dev/null || echo "")
+          if [ -n "$PREV" ]; then
+            git log --pretty=format:"- %s (%h)" "${PREV}..HEAD" >> /tmp/release-notes.md 2>/dev/null || true
+          else
+            git log --pretty=format:"- %s (%h)" "HEAD" >> /tmp/release-notes.md 2>/dev/null || true
+          fi
           cat /tmp/release-notes.md
 
       - name: Create Release
@@ -158,7 +160,6 @@ jobs:
         shell: bash
         run: |
           cd dist
-          # Collect all release assets
           ASSETS=()
           for f in *.tar.gz *.zip SHA256SUMS.txt; do
             [ -f "$f" ] && ASSETS+=("$f")
