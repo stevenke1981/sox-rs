@@ -1,4 +1,4 @@
-# rust-sox Knowledge Maps
+# sox (rust-sox) Knowledge Maps
 
 ## 1. Module Dependency Map
 

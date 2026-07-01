@@ -5,6 +5,13 @@ edition = "2024"
 description = "A Rust-first, SoX-inspired audio processor"
 license = "LGPL-2.1-or-later OR MIT"
 
+[[bin]]
+name = "sox"
+path = "src/main.rs"
+
+[lib]
+name = "rust_sox"
+
 [dependencies]
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }

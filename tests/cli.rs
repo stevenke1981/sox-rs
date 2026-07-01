@@ -12,7 +12,7 @@ fn converts_with_sox_style_effects() {
     let output = temp.join("output.wav");
     write_test_wav(&input, 4410, 1, 0.5);
 
-    let status = Command::new(env!("CARGO_BIN_EXE_rust-sox"))
+    let status = Command::new(env!("CARGO_BIN_EXE_sox"))
         .arg(&input)
         .arg(&output)
         .args([
@@ -29,7 +29,7 @@ fn converts_with_sox_style_effects() {
 
 #[test]
 fn lists_format_support() {
-    let output = Command::new(env!("CARGO_BIN_EXE_rust-sox"))
+    let output = Command::new(env!("CARGO_BIN_EXE_sox"))
         .args(["formats"])
         .output()
         .unwrap();
@@ -46,7 +46,7 @@ fn prints_json_info() {
     let input = temp.join("input.wav");
     write_test_wav(&input, 4410, 1, 0.5);
 
-    let output = Command::new(env!("CARGO_BIN_EXE_rust-sox"))
+    let output = Command::new(env!("CARGO_BIN_EXE_sox"))
         .args(["info", "--json"])
         .arg(&input)
         .output()
@@ -69,7 +69,7 @@ fn concatenates_and_mixes_inputs() {
     write_test_wav(&a, 1000, 1, 0.4);
     write_test_wav(&b, 500, 1, 0.2);
 
-    let concat_status = Command::new(env!("CARGO_BIN_EXE_rust-sox"))
+    let concat_status = Command::new(env!("CARGO_BIN_EXE_sox"))
         .args(["concat", "-o"])
         .arg(&concat)
         .arg(&a)
@@ -79,7 +79,7 @@ fn concatenates_and_mixes_inputs() {
     assert!(concat_status.success());
     assert_eq!(hound::WavReader::open(&concat).unwrap().duration(), 1500);
 
-    let mix_status = Command::new(env!("CARGO_BIN_EXE_rust-sox"))
+    let mix_status = Command::new(env!("CARGO_BIN_EXE_sox"))
         .args(["mix", "-o"])
         .arg(&mix)
         .arg(&a)
@@ -99,7 +99,7 @@ fn streams_wav_without_full_buffer_pipeline() {
     let output = temp.join("stream.wav");
     write_test_wav(&input, 44_100, 2, 0.9);
 
-    let status = Command::new(env!("CARGO_BIN_EXE_rust-sox"))
+    let status = Command::new(env!("CARGO_BIN_EXE_sox"))
         .args([
             "stream",
             "--gain-db=-3",
@@ -131,7 +131,7 @@ fn converts_wav_roundtrip_without_external_deps() {
     let output = temp.join("output.wav");
     write_test_wav(&input, 4410, 1, 0.5);
 
-    let status = Command::new(env!("CARGO_BIN_EXE_rust-sox"))
+    let status = Command::new(env!("CARGO_BIN_EXE_sox"))
         .arg("convert")
         .arg(&input)
         .arg(&output)
@@ -170,7 +170,7 @@ fn runs_json_plan() {
         .write_all(plan_text.as_bytes())
         .unwrap();
 
-    let result = Command::new(env!("CARGO_BIN_EXE_rust-sox"))
+    let result = Command::new(env!("CARGO_BIN_EXE_sox"))
         .args(["run-plan"])
         .arg(&plan)
         .output()
@@ -192,7 +192,7 @@ fn synthesizes_audio_with_effects() {
     std::fs::create_dir_all(&temp).unwrap();
     let output = temp.join("tone.wav");
 
-    let result = Command::new(env!("CARGO_BIN_EXE_rust-sox"))
+    let result = Command::new(env!("CARGO_BIN_EXE_sox"))
         .args([
             "synth",
             "--duration",

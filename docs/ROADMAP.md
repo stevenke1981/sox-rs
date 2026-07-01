@@ -1,4 +1,4 @@
-# rust-sox Roadmap
+# sox (rust-sox) Roadmap
 
 ## Milestone 1: Rust Core
 
